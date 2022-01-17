@@ -1,5 +1,7 @@
 import datetime as dt
+import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -7,7 +9,8 @@ from pathlib import Path
 import yaml
 from bs4 import BeautifulSoup
 
-from fstate_generator import generate_fstate_day, get_last_report, get_img_value
+from fstate_generator import (generate_fstate_day, get_img_value,
+                              get_last_report)
 from login import login
 
 NEED_BEFORE = False  # 如需补报则置为True，否则False
@@ -61,13 +64,14 @@ def report_day(sess, t):
 
     BaoSRQ = t.strftime('%Y-%m-%d')
     ShiFSH, ShiFZX, ddlSheng, ddlShi, ddlXian, XiangXDZ, ShiFZJ = get_last_report(sess, t)
-    XingCM = get_img_value(sess)
+    SuiSM, XingCM = get_img_value(sess)
 
     print('#信息获取完成#')
     print(f'是否在上海：{ShiFSH}')
     print(f'是否在校：{ShiFZX}')
     print(ddlSheng, ddlShi, ddlXian, f'###{XiangXDZ[-2:]}')
     print(f'是否为家庭地址：{ShiFZJ}')
+    print(f'随申码：{SuiSM}')
     print(f'行程码：{XingCM}')
 
     for _ in range(RETRY):
@@ -82,6 +86,7 @@ def report_day(sess, t):
                 "p1$BaoSRQ": BaoSRQ,
                 "p1$DangQSTZK": "良好",
                 "p1$TiWen": "",
+                "p1$pImages$HFimgSuiSM": SuiSM,
                 "p1$pImages$HFimgXingCM": XingCM,
                 "p1$JiuYe_ShouJHM": "",
                 "p1$JiuYe_Email": "",
@@ -133,7 +138,7 @@ def report_day(sess, t):
                 "p1_Collapsed": "false",
                 "F_STATE": generate_fstate_day(BaoSRQ, ShiFSH, ShiFZX,
                                                ddlSheng, ddlShi, ddlXian, XiangXDZ, ShiFZJ,
-                                               XingCM)
+                                               SuiSM, XingCM)
             }, headers={
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-FineUI-Ajax': 'true'
@@ -156,6 +161,24 @@ def report_day(sess, t):
     else:
         print('每日一报填报超时')
         return False
+
+
+def view_messages(sess):
+    r = sess.get('https://selfreport.shu.edu.cn/MyMessages.aspx')
+    t = re.findall(r'^.*//\]', r.text, re.MULTILINE)[0]
+    htmls = t.split(';var ')
+    for h in htmls:
+        if '未读' in h:
+            f_items = json.loads(h[h.find('=') + 1:])['F_Items']
+            for item in f_items:
+                if '未读' in item[1]:
+                    sess.get(f'https://selfreport.shu.edu.cn{item[4]}', allow_redirects=False)
+                    print('已读', item[4])
+            break
+
+
+def notice(sess):
+    sess.post('https://selfreport.shu.edu.cn/DayReportNotice.aspx')
 
 
 if __name__ == "__main__":
@@ -181,6 +204,9 @@ if __name__ == "__main__":
 
         if sess:
             print('登录成功')
+            # notice(sess)
+            view_messages(sess)
+
             now = get_time()
 
             if NEED_BEFORE:
