@@ -1,4 +1,4 @@
-name: Auto Report
+name: Auto Report from Remote
 
 on:
   schedule:
@@ -21,6 +21,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Pull Remote
+        if: always()
+        run: "python -u pull_remote.py"
 
       - name: Configure OpenVPN
         env:
@@ -48,4 +52,4 @@ jobs:
         if: always()
         env:
           users: ${{ secrets.USERS }}
-        run: "python -u main.py"
+        run: "python -u run_remote.py"
