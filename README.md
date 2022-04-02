@@ -2,18 +2,26 @@
 
 ***！！！本项目不支持进行虚假填报！！！仅根据前一天填报内容自动填报，以免遗忘漏报***
 
-程序为python脚本文件，修改配置文件相关信息，设置后台运行脚本，脚本会根据配置文件信息自动进行每日一报/每日两报。
+程序为python脚本文件，修改配置文件相关信息，设置后台运行脚本，脚本会根据配置文件信息自动进行每日一报。
 
 支持github actions服务器。
 
 支持一键补报功能。
 
-支持每日一报。目前在早6晚6各自动填报一次。
+支持每日一报。目前在 4:00AM(report_remote)/3:00AM(report) 自动填报一次。
 
-为了避免过多的配置，感谢[@Lanszhang131](https://github.com/Lanszhang131/DailyReport_SHU)的思路，**利用前一天的报送信息进行填报，所以如果你真实地提交过一次，那每天会重复填报。由于默认是早6晚6填报，所以如果你想用真实信息的话第一次在晚上6点填报后修改下信息。**
+为了避免过多的配置，感谢[@Lanszhang131](https://github.com/Lanszhang131/DailyReport_SHU)的思路，**利用前一天的报送信息进行填报，所以如果你真实地提交过一次，那每天会重复填报。由于默认是 4:00AM(report_remote)/3:00AM(report) 填报，所以如果你想用真实信息的话第一次在早上6点填报后修改下信息。**
 
 
 ## 更新日志
+
+**目前实现模拟随机IP功能，以规避IP屏蔽；连接学校VPN功能依然保留，若出现提交失败则会尝试连接后再次填报**
+
+**由于OpenVPN同一时间登录登陆人数过多，现增加失败重连功能，每次连接之间会随机等待一定时间；现默认每次从主项目拉取最新代码填报；增加自定义 `HTTP_PROXY` 与 `DISABLE_PULL_REMOTE` 设置选项，具体使用说明见`用法`**
+
+**~~由于OpenVPN同一时间登录登陆人数过多，现增加失败重连功能，每次连接之间会随机等待一定时间；增加自定义HTTP_PROXY的环境变量与DISABLE_OPVPN的选项~~**
+
+**~~由于OpenVPN同一时间登录登陆人数过多，现随机等待600-1440秒再连接~~**
 
 **新增 Auto Report from Remote，可以拉取远程最新的代码，不再需要每次更新，每次拉取**
 
@@ -61,19 +69,17 @@
 
 `VALUE` 设置为 `学号1,密码1;学号2,密码2` 的格式，注意逗号与分号的区分，学号密码之间用逗号，每两个学号之间用分号，必须是英文半角符号，如果只有一个学号密码则不需要加分号
 
+*如果你有http代理服务器，则建议添加 `HTTPS_PROXY`为你的代理服务器地址，一旦设置 `HTTPS_PROXY` ，则会自动关闭 OpenVPN 连接服务。*
+
+*如果你不想通过拉取主项目的代码来实现自动填报，则建议添加 `DISABLE_PULL_REMOTE` 并设置为 `true` ，这样会禁用拉取主项目代码的模式。*
+
 ![](images/secrets.png)
 
-4. 定位到你仓库下的 `Actions` 选项卡中的 `Auto Report from Remote`，点击 `Enable workflow`，此时每天会自动拉取主仓库代码，自动填报，理论上不再需要更新。
+4. 定位到你仓库下的 `Actions` 选项卡中的 `Auto Report`，点击 `Enable workflow`，即可开启自动填报系统。
 
 ![](images/enable_workflow.png)
 
-5. 定位到你仓库下的 `Actions` 选项卡中的 `Auto Report`，点击 `Disable workflow`，该选项卡会根据你自己fork的代码自动填报，如果主仓库更新，则无法及时使用新代码。
-
-![](images/disable_workflow.png)
-
-***由于 `Auto Report from Remote` 与 `Auto Report` 都会登录 OpenVpn 导致冲突，所以同一时间只能启动一个 workflow，建议取消 `Auto Report`，开启 `Auto Report from Remote`。***
-
-6. 此时 Actions 已经启动完成，每执行一次会在 `Actions` 选项卡下生成一个报告。
+5. 此时 Actions 已经启动完成，每执行一次会在 `Actions` 选项卡下生成一个报告。
 
    如果需要对报送功能进行测试，可以点击 `Run workflow` 按钮，立即进行一次运行。
 
